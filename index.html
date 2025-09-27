@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling & Dictation Tester</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Spelling & Dictation Tester</h1>
+            <p>Enter your list, set your pace, and start testing!</p>
+        </header>
+
+        <!-- ==================== SETUP SCREEN ==================== -->
+        <div id="setup-screen">
+            <div class="neumorphic-panel">
+                <div class="form-group textarea-group">
+                    <label for="word-list">
+                        Enter Your List (one item per line)
+                        <div class="tooltip">ⓘ
+                            <span class="tooltiptext">
+                                Use **asterisks** for tested words in sentences. E.g., The sky is **blue**.<br><br>
+                                Numbering like '1.' or '1)' is accepted at the start of a line.<br><br>
+                                A paragraph with multiple sentences (and NO asterisks) will be treated as ONE dictation item, read sentence-by-sentence.
+                            </span>
+                        </div>
+                    </label>
+                    <textarea id="word-list" placeholder="e.g.&#10;1) conscientious&#10;2. The weather is **abominable**.&#10;This is a paragraph. It will be read sentence by sentence."></textarea>
+                    <button id="add-sample-btn" class="sample-text-btn">Add Sample</button>
+                </div>
+                
+                <h3>Settings</h3>
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label for="language-select">Language & Voice</label>
+                        <select id="language-select" disabled>
+                            <option>Loading Voices...</option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label for="reading-speed">Reading Speed</label>
+                        <select id="reading-speed">
+                            <option value="0.5">0.5x</option>
+                            <option value="0.75">0.75x</option>
+                            <option value="1" selected>1x (Normal)</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.5">1.5x</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reread-gap">Re-read Gap (sec)</label>
+                        <input type="number" id="reread-gap" value="10" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="next-item-gap">Gap Between Items (sec)
+                             <div class="tooltip">ⓘ
+                                <span class="tooltiptext">
+                                    A pause before the first read of a new item.
+                                </span>
+                            </div>
+                        </label>
+                        <input type="number" id="next-item-gap" value="3" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="auto-next-delay">Auto-Next After (sec)
+                            <div class="tooltip">ⓘ
+                                <span class="tooltiptext">
+                                    Time after the last read until the next item automatically starts. Set to 0 for manual 'Next'. Minimum 8s if active.<br><br>
+                                    This timer includes the 'Gap Between Items'. If Auto-Next is 15s and Gap is 3s, the new item starts 15s after the last read finishes.
+                                </span>
+                            </div>
+                        </label>
+                        <input type="number" id="auto-next-delay" value="15" min="0" step="1">
+                        <small>(Set to 0 for manual 'Next'. Min 8s if active)</small>
+                    </div>
+                     <div class="form-group">
+                        <label for="show-context">Show Sentence Context</label>
+                        <select id="show-context">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div class="form-group timer-group">
+                        <label for="timer-mode">Timer Mode</label>
+                        <select id="timer-mode">
+                            <option value="stopwatch">Stopwatch</option>
+                            <option value="countdown">Countdown</option>
+                        </select>
+                    </div>
+                    <div class="form-group timer-group" id="countdown-minutes-group">
+                        <label for="countdown-minutes">Countdown Mins</label>
+                        <input type="number" id="countdown-minutes" value="10" min="1">
+                    </div>
+                     <div class="form-group toggle-group">
+                        <label for="randomize-list">Randomize List</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="randomize-list">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                     <div class="form-group toggle-group">
+                        <label for="recurring-readout">Recurring Read Out
+                            <div class="tooltip">ⓘ
+                                <span class="tooltiptext">
+                                    Continuously reads the current item until you click 'Read Next'. Disables 'Auto-Next'.
+                                </span>
+                            </div>
+                        </label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="recurring-readout">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+            <button id="start-btn" class="neumorphic-button primary" style="width: 100%; margin-top: 30px; font-size: 1.5rem;" disabled>Loading Voices...</button>
+        </div>
+
+        <!-- ==================== TEST SCREEN ==================== -->
+        <div id="test-screen" class="hidden">
+            <div class="timer-display-group">
+                <div class="timer-display" id="timer">00:00</div>
+                <div class="auto-next-countdown hidden" id="auto-next-countdown"></div>
+            </div>
+            
+            <div class="progress-display" id="progress">Item 1 of 10</div>
+            
+            <div class="neumorphic-panel context-panel">
+                <div class="context-display" id="context"></div>
+            </div>
+
+            <div class="controls">
+                <button id="read-again-btn" class="neumorphic-button secondary">Read Again</button>
+                <button id="read-next-btn" class="neumorphic-button primary">Read Next</button>
+            </div>
+            
+            <button id="end-test-btn" class="neumorphic-button danger">End Test</button>
+        </div>
+        
+        <!-- ==================== RESULTS SCREEN ==================== -->
+        <div id="results-screen" class="hidden">
+            <div class="results-content">
+                <h2>Test Finished!</h2>
+                <p>Please check through your answers.</p>
+                <div class="results-controls">
+                    <button id="reread-all-btn" class="neumorphic-button secondary">Reread Tested Words (Fast)</button>
+                    <button id="reset-btn" class="neumorphic-button primary">Start New Test</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js" defer></script>
+</body>
+</html>
