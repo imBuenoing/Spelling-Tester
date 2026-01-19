@@ -92,10 +92,16 @@ header p { font-size: 1.1rem; color: var(--text-color); }
     position: relative;
 }
 
-.sample-text-btn {
+.textarea-buttons {
     position: absolute;
     top: 8px;
     right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.sample-text-btn {
     background: #d1d5db;
     border: none;
     border-radius: 8px;
@@ -228,15 +234,35 @@ input:checked + .slider:before {
 }
 
 .tooltip .tooltiptext {
-    visibility: hidden; width: 280px; background-color: #555; color: #fff; text-align: center;
-    border-radius: 6px; padding: 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%;
-    margin-left: -140px; opacity: 0; transition: opacity 0.3s;
+    visibility: hidden; 
+    width: 280px; 
+    background-color: #555; 
+    color: #fff; 
+    text-align: center;
+    border-radius: 6px; 
+    padding: 8px; 
+    position: absolute; 
+    z-index: 1; 
+    top: 125%; 
+    left: 50%;
+    margin-left: -140px; 
+    opacity: 0; 
+    transition: opacity 0.3s;
 }
 .tooltip .tooltiptext::after {
-    content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px;
-    border-style: solid; border-color: #555 transparent transparent transparent;
+    content: ""; 
+    position: absolute; 
+    bottom: 100%; 
+    left: 50%; 
+    margin-left: -5px; 
+    border-width: 5px;
+    border-style: solid; 
+    border-color: transparent transparent #555 transparent;
 }
-.tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+.tooltip:hover .tooltiptext { 
+    visibility: visible; 
+    opacity: 1; 
+}
 
 /* --- Test Screen --- */
 #test-screen { text-align: center; }
