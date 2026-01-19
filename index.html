@@ -14,7 +14,7 @@
     <div class="container">
         <header>
             <h1>Spelling & Dictation Tester</h1>
-            <p>Enter your list, set your pace, and start testing!</p>
+            <p id="header-tagline">Enter your list, set your pace, and start testing!</p>
         </header>
 
         <!-- ==================== SETUP SCREEN ==================== -->
@@ -31,8 +31,11 @@
                             </span>
                         </div>
                     </label>
+                    <div class="textarea-buttons">
+                        <button id="add-sample-btn" class="sample-text-btn">Add Sample</button>
+                        <button id="clear-list-btn" class="sample-text-btn">Clear List</button>
+                    </div>
                     <textarea id="word-list" placeholder="e.g.&#10;1) conscientious&#10;2. The weather is **abominable**.&#10;This is a paragraph. It will be read sentence by sentence."></textarea>
-                    <button id="add-sample-btn" class="sample-text-btn">Add Sample</button>
                 </div>
                 
                 <h3>Settings</h3>
@@ -44,7 +47,13 @@
                         </select>
                     </div>
                      <div class="form-group">
-                        <label for="reading-speed">Reading Speed</label>
+                        <label for="reading-speed">Reading Speed
+                            <div class="tooltip">ⓘ
+                                <span class="tooltiptext">
+                                    We recommend 0.75x for new learners.
+                                </span>
+                            </div>
+                        </label>
                         <select id="reading-speed">
                             <option value="0.5">0.5x</option>
                             <option value="0.75">0.75x</option>
@@ -55,7 +64,7 @@
                     </div>
                     <div class="form-group">
                         <label for="reread-gap">Re-read Gap (sec)</label>
-                        <input type="number" id="reread-gap" value="10" min="1">
+                        <input type="number" id="reread-gap" value="10" min="1" max="30">
                     </div>
                     <div class="form-group">
                         <label for="next-item-gap">Gap Between Items (sec)
@@ -65,7 +74,7 @@
                                 </span>
                             </div>
                         </label>
-                        <input type="number" id="next-item-gap" value="3" min="0">
+                        <input type="number" id="next-item-gap" value="3" min="0" max="10">
                     </div>
                     <div class="form-group">
                         <label for="auto-next-delay">Auto-Next After (sec)
@@ -84,6 +93,13 @@
                         <select id="show-context">
                             <option value="true">Yes</option>
                             <option value="false">No</option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label for="read-punctuation">Read All Punctuation</label>
+                        <select id="read-punctuation">
+                            <option value="false">No</option>
+                            <option value="true">Yes</option>
                         </select>
                     </div>
                     <div class="form-group timer-group">
@@ -137,11 +153,14 @@
             </div>
 
             <div class="controls">
-                <button id="read-again-btn" class="neumorphic-button secondary">Read Again</button>
-                <button id="read-next-btn" class="neumorphic-button primary">Read Next</button>
+                <button id="read-again-btn" class="neumorphic-button secondary hidden">Repeat</button>
+                <button id="repeat-sentence-btn" class="neumorphic-button secondary hidden">Repeat Current Sentence</button>
+                <button id="next-sentence-btn" class="neumorphic-button secondary hidden">Read Next Sentence</button>
+                <button id="read-next-btn" class="neumorphic-button primary hidden">Next</button>
             </div>
             
-            <button id="end-test-btn" class="neumorphic-button danger">End Test</button>
+            <button id="end-test-btn" class="neumorphic-button danger hidden">End Test</button>
+            <button id="start-test-btn" class="neumorphic-button primary" style="width: 100%; margin-top: 30px; font-size: 1.5rem;">Start Test</button>
         </div>
         
         <!-- ==================== RESULTS SCREEN ==================== -->
@@ -159,5 +178,8 @@
     </div>
 
     <script src="script.js" defer></script>
+    <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="Juino" data-color="#FFDD00" data-emoji=""  data-font="Cookie" data-text="Buy Buenalios a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
+    <script data-goatcounter="https://imbuenoing.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
