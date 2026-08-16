@@ -185,6 +185,8 @@ let actionTimers = { reread: null, autoNext: null, autoNextCountdown: null, recu
 let voices = [];
 const synth = window.speechSynthesis;
 let testHasStarted = false;
+let maxRepeats = 'unlimited';
+let repeatsLeft = 'unlimited';
 let userSlots = createDefaultSlots();
 let promptResolver = null;
 let supabaseClient = null;
@@ -642,10 +644,18 @@ startTestBtn.addEventListener('click', () => {
         endTestBtn.classList.remove('hidden');
         startMainTimer();
         _startNextItem();
+        updateRepeatButtonUI();
     }
 });
 
 readAgainBtn.addEventListener('click', () => {
+    if (repeatsLeft !== 'unlimited' && repeatsLeft <= 0) {
+        return;
+    }
+    if (repeatsLeft !== 'unlimited') {
+        repeatsLeft--;
+        updateRepeatButtonUI();
+    }
     synth.cancel();
     if (testItems[currentIndex].type === 'paragraph') {
         currentParagraphSentenceIndex = 0;
@@ -738,6 +748,7 @@ function gatherSettings() {
         readingSpeed: parseFloat($('reading-speed').value),
         recurringReadout: recurringReadout,
         readPunctuation: $('read-punctuation').value === 'true',
+        practiceMode: $('practice-mode').checked,
         voice: voices.find(v => v.voiceURI === selectedVoiceURI)
     };
 }
@@ -830,6 +841,9 @@ function startTest() {
     currentIndex = -1;
     currentParagraphSentenceIndex = 0;
     testHasStarted = false;
+    maxRepeats = $('repeat-limit').value;
+    repeatsLeft = maxRepeats === 'unlimited' ? 'unlimited' : parseInt(maxRepeats, 10);
+    updateRepeatButtonUI();
 
     showScreen(testScreen);
     headerTagline.textContent = "You've got this! Stay focused and do your best!";
@@ -890,16 +904,13 @@ function readCurrentItem(isManualRetry = false, keepCurrentSentence = false) {
 
     let mainUtteranceText;
     let isLastSentenceOfParagraph = true;
-    let currentItemContext = '';
 
     if (item.type === 'paragraph') {
         const sentence = item.sentences[currentParagraphSentenceIndex];
         mainUtteranceText = sentence.toRead;
-        currentItemContext = '';
         isLastSentenceOfParagraph = (currentParagraphSentenceIndex === item.sentences.length - 1);
     } else {
         mainUtteranceText = item.toRead;
-        currentItemContext = (settings.showContext && item.context) ? item.context : '';
     }
 
     if (settings.readPunctuation) {
@@ -962,11 +973,11 @@ function readCurrentItem(isManualRetry = false, keepCurrentSentence = false) {
         announcementUtterance.voice = announcementVoice;
         announcementUtterance.rate = settings.readingSpeed;
 
-        contextDisplay.innerHTML = currentItemContext;
+        renderItemDisplay(item);
         synth.speak(announcementUtterance);
         synth.speak(mainUtterance);
     } else {
-        contextDisplay.innerHTML = currentItemContext;
+        renderItemDisplay(item);
         synth.speak(mainUtterance);
     }
 }
@@ -1064,18 +1075,47 @@ function rereadAllTestedWords() {
     speakNextTestedPart();
 }
 
+function updateRepeatButtonUI() {
+    if (!readAgainBtn) return;
+
+    if (repeatsLeft === 'unlimited') {
+        readAgainBtn.textContent = 'Repeat';
+        readAgainBtn.disabled = false;
+        return;
+    }
+
+    readAgainBtn.textContent = `Repeat (${repeatsLeft} left)`;
+    readAgainBtn.disabled = repeatsLeft <= 0;
+}
+
+function formatPracticeHtml(original) {
+    const withoutAudio = String(original || '').replace(/\[(.*?)\]/g, '');
+    return escapeHtml(withoutAudio).replace(/\*\*(.*?)\*\*/g, '<span class="practice-highlight">$1</span>');
+}
+
+function renderItemDisplay(item) {
+    if (!item) {
+        contextDisplay.innerHTML = '';
+        return;
+    }
+
+    const isPracticeMode = $('practice-mode').checked;
+    if (isPracticeMode) {
+        contextDisplay.innerHTML = formatPracticeHtml(item.original);
+        return;
+    }
+
+    if (item.type === 'paragraph') {
+        contextDisplay.innerHTML = '';
+        return;
+    }
+
+    contextDisplay.innerHTML = (settings.showContext && item.context) ? item.context : '';
+}
+
 function updateUI() {
     progressDisplay.textContent = `Item ${currentIndex + 1} of ${testItems.length}`;
-    const currentItem = testItems[currentIndex];
-    if (!currentItem) return;
-
-    if (currentItem.type === 'paragraph') {
-        contextDisplay.innerHTML = '';
-    } else if (currentItem.type === 'single' && settings.showContext && currentItem.context) {
-        contextDisplay.innerHTML = currentItem.context;
-    } else {
-        contextDisplay.innerHTML = '';
-    }
+    renderItemDisplay(testItems[currentIndex]);
 }
 
 function updateControlButtons() {
@@ -1099,6 +1139,8 @@ function endTest(isFinished = false) {
 
     startTestBtn.classList.remove('hidden');
     readAgainBtn.classList.add('hidden');
+    readAgainBtn.textContent = 'Repeat';
+    readAgainBtn.disabled = false;
     repeatSentenceBtn.classList.add('hidden');
     nextSentenceBtn.classList.add('hidden');
     readNextBtn.classList.add('hidden');

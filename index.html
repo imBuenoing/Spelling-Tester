@@ -79,6 +79,15 @@
                         <input type="number" id="reread-gap" value="10" min="1" max="30">
                     </div>
                     <div class="form-group">
+                        <label for="repeat-limit">Repeat Limit</label>
+                        <select id="repeat-limit">
+                            <option value="unlimited">Unlimited</option>
+                            <option value="3">3 times per test</option>
+                            <option value="5">5 times per test</option>
+                            <option value="0">No repeats</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="next-item-gap">Gap Between Items (sec)
                              <div class="tooltip">ⓘ
                                 <span class="tooltiptext">
@@ -142,6 +151,19 @@
                         </label>
                         <label class="toggle-switch">
                             <input type="checkbox" id="recurring-readout">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                     <div class="form-group toggle-group">
+                        <label for="practice-mode">Practice Mode
+                            <div class="tooltip">ⓘ
+                                <span class="tooltiptext">
+                                    Shows the tested words on screen instead of blanks, so you can follow along while you listen.
+                                </span>
+                            </div>
+                        </label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="practice-mode">
                             <span class="slider"></span>
                         </label>
                     </div>
