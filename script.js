@@ -771,11 +771,14 @@ function parseInput(rawText) {
             const actualSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
 
             if (actualSentences.length > 1) {
+                const sentences = actualSentences.map(s => parseSingleLine(s));
                 parsedItems.push({
                     type: 'paragraph',
                     original: cleanedLine,
-                    sentences: actualSentences.map(s => parseSingleLine(s)),
-                    testedPart: cleanedLine
+                    sentences,
+                    testedPart: cleanedLine,
+                    practiceText: sentences.map(s => s.practiceText).join(' '),
+                    context: ''
                 });
             } else {
                 parsedItems.push(parseSingleLine(cleanedLine));
@@ -790,12 +793,12 @@ function parseSingleLine(line) {
     let textForUI = line;
     let textForAudio = null;
 
-    // 1. Extract audio override if [ ] is present (e.g., [举手])
-    const audioRegex = /\[(.*?)\]/;
-    const audioMatch = textForUI.match(audioRegex);
+    // 1. Extract audio override if [ ] is present
+    const audioRegex = /\[(.*?)\]/g;
+    const audioMatch = textForUI.match(/\[(.*?)\]/);
     if (audioMatch) {
-        textForAudio = audioMatch[1]; // What the voice will say
-        textForUI = textForUI.replace(audioRegex, '').trim(); // Hide it from the screen
+        textForAudio = audioMatch[1];
+        textForUI = textForUI.replace(audioRegex, '').trim();
     }
 
     // 2. Process asterisks for tested parts
@@ -809,12 +812,21 @@ function parseSingleLine(line) {
     }
 
     const type = 'single';
-    // If [ ] was used, audio reads the brackets. Otherwise, it reads the UI text without asterisks.
     const toRead = textForAudio !== null ? textForAudio : textForUI.replace(/\*\*/g, '');
+
+    asteriskRegex.lastIndex = 0;
+    // STANDARD MODE: Replace **word** with _______
     const context = testedParts.length > 0 ? textForUI.replace(asteriskRegex, '_______') : '';
+
+    asteriskRegex.lastIndex = 0;
+    // PRACTICE MODE: Replace **word** with styled span (brackets already removed)
+    const practiceText = testedParts.length > 0
+        ? textForUI.replace(asteriskRegex, '<span class="practice-highlight">$1</span>')
+        : textForUI.replace(/\*\*/g, '');
+
     const testedPart = testedParts.length > 0 ? testedParts.join(' ') : textForUI.replace(/\*\*/g, '');
 
-    return { type, original: line, toRead, context, testedPart };
+    return { type, original: line, toRead, context, practiceText, testedPart };
 }
 
 function startTest() {
@@ -1088,11 +1100,6 @@ function updateRepeatButtonUI() {
     readAgainBtn.disabled = repeatsLeft <= 0;
 }
 
-function formatPracticeHtml(original) {
-    const withoutAudio = String(original || '').replace(/\[(.*?)\]/g, '');
-    return escapeHtml(withoutAudio).replace(/\*\*(.*?)\*\*/g, '<span class="practice-highlight">$1</span>');
-}
-
 function renderItemDisplay(item) {
     if (!item) {
         contextDisplay.innerHTML = '';
@@ -1101,16 +1108,16 @@ function renderItemDisplay(item) {
 
     const isPracticeMode = $('practice-mode').checked;
     if (isPracticeMode) {
-        contextDisplay.innerHTML = formatPracticeHtml(item.original);
+        contextDisplay.innerHTML = item.practiceText || '';
         return;
     }
 
     if (item.type === 'paragraph') {
-        contextDisplay.innerHTML = '';
+        contextDisplay.textContent = '';
         return;
     }
 
-    contextDisplay.innerHTML = (settings.showContext && item.context) ? item.context : '';
+    contextDisplay.textContent = (settings.showContext && item.context) ? item.context : '';
 }
 
 function updateUI() {
