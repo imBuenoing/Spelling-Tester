@@ -57,6 +57,7 @@ body {
     box-shadow: 5px 5px 10px var(--dark-shadow), -5px -5px 10px var(--light-shadow);
     transition: all 0.2s ease-in-out;
     color: var(--text-color);
+    min-height: 44px;
 }
 
 .neumorphic-button:hover:not(:disabled) {
@@ -95,25 +96,29 @@ header p { font-size: 0.95rem; color: var(--text-color); }
 
 .textarea-toolbar {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
 .textarea-toolbar label {
     margin-bottom: 0 !important;
-    flex: 1 1 160px;
+    width: 100%;
 }
 
 .textarea-buttons {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    flex-wrap: wrap;
+    width: 100%;
 }
 
 .sample-text-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
     background: #d1d5db;
     border: none;
     border-radius: 8px;
@@ -124,6 +129,8 @@ header p { font-size: 0.95rem; color: var(--text-color); }
     cursor: pointer;
     transition: background-color 0.2s;
     line-height: 1.2;
+    text-align: center;
+    min-height: 44px;
 }
 
 .sample-text-btn:hover {
@@ -150,6 +157,11 @@ header p { font-size: 0.95rem; color: var(--text-color); }
     font-size: 0.9rem;
 }
 
+#setup-screen h3 {
+    font-size: 1.05rem;
+    margin: 4px 0 8px;
+}
+
 #setup-screen textarea, #setup-screen input[type="number"], #setup-screen select {
     width: 100%;
     padding: 12px;
@@ -163,6 +175,11 @@ header p { font-size: 0.95rem; color: var(--text-color); }
     transition: opacity 0.3s ease;
 }
 
+#setup-screen input[type="number"],
+#setup-screen select {
+    min-height: 44px;
+}
+
 #setup-screen textarea {
     min-height: 150px;
     resize: vertical;
@@ -170,13 +187,45 @@ header p { font-size: 0.95rem; color: var(--text-color); }
 
 .settings-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 12px;
     margin-top: 16px;
 }
 
 .settings-grid .toggle-group {
     grid-column: 1 / -1;
+}
+
+@media (min-width: 500px) {
+    .settings-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 600px) {
+    .textarea-toolbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 12px;
+    }
+
+    .textarea-toolbar label {
+        width: auto;
+        flex: 1 1 auto;
+    }
+
+    .textarea-buttons {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        width: auto;
+        flex-wrap: wrap;
+    }
+
+    .sample-text-btn {
+        width: auto;
+    }
 }
 
 .form-group.disabled {
@@ -351,6 +400,7 @@ input:checked + .slider:before {
     font-weight: 600;
     font-size: 0.9rem;
     padding: 4px 2px;
+    min-height: 44px;
 }
 
 .saved-slots-summary::-webkit-details-marker {
@@ -397,8 +447,12 @@ input:checked + .slider:before {
 }
 
 .slot-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 44px;
     border: none;
     background: transparent;
     padding: 4px 0;
@@ -408,15 +462,34 @@ input:checked + .slider:before {
     font-size: 0.82rem;
     color: var(--text-color);
     cursor: pointer;
+}
+
+.slot-label span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
 }
 
-.slot-label:hover {
+.slot-label::after {
+    content: "✏️";
+    flex-shrink: 0;
+    font-size: 0.85em;
+    line-height: 1;
+    opacity: 0.35;
+    transition: opacity 0.2s ease;
+}
+
+.slot-label:hover,
+.slot-label:focus {
     color: var(--primary-color);
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    outline: none;
+}
+
+.slot-label:hover::after,
+.slot-label:focus::after,
+.slot-label:focus-visible::after {
+    opacity: 1;
 }
 
 .slot-actions {
@@ -435,6 +508,7 @@ input:checked + .slider:before {
     cursor: pointer;
     background: #d1d5db;
     color: var(--text-color);
+    min-height: 44px;
 }
 
 .slot-actions button:hover {
@@ -499,6 +573,20 @@ body.modal-open {
     border-radius: 16px;
     background: var(--bg-color);
     box-shadow: 9px 9px 16px var(--dark-shadow), -9px -9px 16px var(--light-shadow);
+}
+
+@media (max-width: 600px) {
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal-dialog {
+        border-radius: 16px 16px 0 0;
+        max-height: 92vh;
+        margin: 0;
+        max-width: 100%;
+    }
 }
 
 .modal-header {
@@ -802,8 +890,11 @@ body.modal-open {
     }
 
     .slot-label {
-        white-space: normal;
         font-size: 0.85rem;
+    }
+
+    .slot-label span {
+        white-space: normal;
     }
 
     .slot-actions {
