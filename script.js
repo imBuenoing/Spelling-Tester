@@ -8,8 +8,8 @@ const DEFAULT_SLOT_LABELS = ['Save 1', 'Save 2', 'Save 3'];
 
 // Use the Project URL only, e.g. https://abcd1234.supabase.co
 // Do not paste the REST endpoint (.../rest/v1) or a table URL.
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://fvyckirbgipucnfhatwu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2eWNraXJiZ2lwdWNuZmhhdHd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NzYwNDcsImV4cCI6MjEwMjQ1MjA0N30.JxNEpQozH8-nS5ai2z8dQFNpTzU5SZ6YqFLPYZXmtEk';
 
 const SAMPLE_LIST = `1. My stomach felt like it was **full of fluttering butterflies**.
 2. As she waited for her turn, she felt **a lump form in her throat**.
