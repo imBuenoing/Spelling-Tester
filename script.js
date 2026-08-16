@@ -6,7 +6,9 @@ const USER_SLOTS_KEY = 'dictation_user_slots';
 const SLOT_COUNT = 3;
 const DEFAULT_SLOT_LABELS = ['Save 1', 'Save 2', 'Save 3'];
 
-const SUPABASE_URL = 'https://fvyckirbgipucnfhatwu.supabase.co/rest/v1/';
+// Use the Project URL only, e.g. https://abcd1234.supabase.co
+// Do not paste the REST endpoint (.../rest/v1) or a table URL.
+const SUPABASE_URL = 'https://fvyckirbgipucnfhatwu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2eWNraXJiZ2lwdWNuZmhhdHd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4NzYwNDcsImV4cCI6MjEwMjQ1MjA0N30.JxNEpQozH8-nS5ai2z8dQFNpTzU5SZ6YqFLPYZXmtEk';
 
 const SAMPLE_LIST = `1. My stomach felt like it was **full of fluttering butterflies**.
@@ -88,8 +90,27 @@ function isPlaceholderCredential(value) {
     return trimmed === '' || /^YOUR_/i.test(trimmed) || trimmed.includes('YOUR_SUPABASE');
 }
 
+function normalizeSupabaseUrl(rawUrl) {
+    let url = String(rawUrl || '').trim();
+    url = url.replace(/\/+$/, '');
+    url = url.replace(/\/(rest|auth|storage|graphql)\/v1$/i, '');
+    url = url.replace(/\/+$/, '');
+    return url;
+}
+
 function isSupabaseConfigured() {
     return !isPlaceholderCredential(SUPABASE_URL) && !isPlaceholderCredential(SUPABASE_ANON_KEY);
+}
+
+function formatSupabaseError(error) {
+    const code = error && error.code;
+    if (code === 'PGRST125') {
+        return 'Invalid path in the Supabase request URL. SUPABASE_URL must be the Project URL (https://YOUR_PROJECT.supabase.co), not the REST endpoint that includes /rest/v1.';
+    }
+    if (code === 'PGRST205') {
+        return 'Table "school_lists" was not found. Create it in the public schema and enable it in the API.';
+    }
+    return (error && error.message) || 'Could not load school lists.';
 }
 
 // --- DOM Elements ---
@@ -402,7 +423,19 @@ function getSupabaseClient() {
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
         throw new Error('Supabase library failed to load. Check your network connection and try again.');
     }
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const projectUrl = normalizeSupabaseUrl(SUPABASE_URL);
+    let parsed;
+    try {
+        parsed = new URL(projectUrl);
+    } catch (error) {
+        throw new Error('SUPABASE_URL is not a valid URL. Use https://YOUR_PROJECT.supabase.co');
+    }
+    if (parsed.protocol !== 'https:' || parsed.pathname !== '/') {
+        throw new Error('SUPABASE_URL must be the Project URL only (https://YOUR_PROJECT.supabase.co), with no /rest/v1 path.');
+    }
+
+    supabaseClient = window.supabase.createClient(projectUrl, SUPABASE_ANON_KEY.trim());
     return supabaseClient;
 }
 
@@ -490,7 +523,7 @@ async function fetchSchoolLists() {
         .order('title', { ascending: true });
 
     if (error) {
-        throw new Error(error.message || 'Could not load school lists.');
+        throw new Error(formatSupabaseError(error));
     }
 
     vaultLists = Array.isArray(data) ? data : [];
