@@ -77,11 +77,29 @@ function uniqueSorted(values) {
     return [...new Set(values.filter(Boolean).map(String))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
-function fillSelect(selectEl, values, placeholder) {
-    const current = selectEl.value;
-    selectEl.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>` +
+function fillSelect(selectEl, values, { placeholder, defaultValue } = {}) {
+    const previous = selectEl.value;
+    const placeholderHtml = placeholder
+        ? `<option value="" disabled>${escapeHtml(placeholder)}</option>`
+        : '';
+    selectEl.innerHTML = placeholderHtml +
         values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
-    if (values.includes(current)) selectEl.value = current;
+
+    if (previous && values.includes(previous)) {
+        selectEl.value = previous;
+        return;
+    }
+    if (defaultValue && values.includes(String(defaultValue))) {
+        selectEl.value = String(defaultValue);
+        return;
+    }
+    if (placeholder) {
+        selectEl.value = '';
+        return;
+    }
+    if (values.length > 0) {
+        selectEl.value = values[0];
+    }
 }
 
 function isPlaceholderCredential(value) {
@@ -463,20 +481,42 @@ function getFilteredVaultLists() {
     const level = vaultFilterLevel.value;
     const year = vaultFilterYear.value;
     return vaultLists.filter((item) => {
-        if (school && String(item.school_name) !== school) return false;
-        if (level && String(item.level) !== level) return false;
-        if (year && String(item.year) !== year) return false;
+        if (String(item.school_name) !== school) return false;
+        if (String(item.level) !== level) return false;
+        if (String(item.year) !== year) return false;
         return true;
     });
 }
 
+function areVaultFiltersComplete() {
+    return Boolean(vaultFilterSchool.value && vaultFilterLevel.value && vaultFilterYear.value);
+}
+
+function currentVaultYear() {
+    return String(new Date().getFullYear());
+}
+
 function renderVaultFilters() {
-    fillSelect(vaultFilterSchool, uniqueSorted(vaultLists.map((item) => item.school_name)), 'All schools');
-    fillSelect(vaultFilterLevel, uniqueSorted(vaultLists.map((item) => item.level)), 'All levels');
-    fillSelect(vaultFilterYear, uniqueSorted(vaultLists.map((item) => item.year)), 'All years');
+    const schools = uniqueSorted(vaultLists.map((item) => item.school_name));
+    const levels = uniqueSorted(vaultLists.map((item) => item.level));
+    const year = currentVaultYear();
+    const years = uniqueSorted([...vaultLists.map((item) => item.year), year]);
+
+    fillSelect(vaultFilterSchool, schools, { placeholder: 'Select School' });
+    fillSelect(vaultFilterLevel, levels, { placeholder: 'Select Level' });
+    fillSelect(vaultFilterYear, years, { defaultValue: year });
 }
 
 function renderVaultList() {
+    if (!areVaultFiltersComplete()) {
+        vaultList.hidden = true;
+        vaultList.innerHTML = '';
+        resetVaultPreview();
+        vaultPreview.innerHTML = '<p class="vault-preview-empty">Select a school, level, and year to view matching lists.</p>';
+        return;
+    }
+
+    vaultList.hidden = false;
     const items = getFilteredVaultLists();
     if (items.length === 0) {
         vaultList.innerHTML = '<p class="vault-empty">No spelling lists match these filters.</p>';
@@ -511,6 +551,7 @@ function renderVaultPreview(item) {
 async function fetchSchoolLists() {
     const client = getSupabaseClient();
     setVaultStatus('loading', 'Loading school lists…', { spinner: true });
+    vaultList.hidden = true;
     vaultList.innerHTML = '';
     resetVaultPreview();
 
@@ -540,6 +581,7 @@ async function openSchoolVault() {
     openModal(schoolVaultModal);
     vaultLists = [];
     renderVaultFilters();
+    vaultList.hidden = true;
     vaultList.innerHTML = '';
     resetVaultPreview();
 

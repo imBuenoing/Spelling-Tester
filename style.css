@@ -741,6 +741,10 @@ body.modal-open {
     padding: 4px;
 }
 
+.vault-list[hidden] {
+    display: none !important;
+}
+
 .vault-list-item {
     text-align: left;
     border: none;
