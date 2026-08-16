@@ -123,7 +123,9 @@ const wordListInput = $('word-list');
 const addSampleBtn = $('add-sample-btn');
 const clearListBtn = $('clear-list-btn');
 const schoolVaultBtn = $('school-vault-btn');
+const savedSlotsPanel = $('saved-slots');
 const savedSlotsGrid = $('saved-slots-grid');
+const savedSlotsStatus = $('saved-slots-status');
 const timerDisplay = $('timer');
 const autoNextCountdownDisplay = $('auto-next-countdown');
 const progressDisplay = $('progress');
@@ -323,24 +325,18 @@ function persistUserSlots() {
     localStorage.setItem(USER_SLOTS_KEY, JSON.stringify(userSlots));
 }
 
-function slotPreviewText(content) {
-    const trimmed = content.trim();
-    if (!trimmed) return 'Empty';
-    const firstLine = trimmed.split('\n')[0];
-    return firstLine.length > 42 ? `${firstLine.slice(0, 42)}…` : firstLine;
-}
-
 function renderSavedSlots() {
+    const filledCount = userSlots.slots.filter((slot) => slot.content.trim()).length;
+    savedSlotsStatus.textContent = filledCount ? `${filledCount} saved` : 'Empty';
+
     savedSlotsGrid.innerHTML = userSlots.slots.map((slot) => {
         const hasContent = slot.content.trim().length > 0;
         return `
-            <article class="slot-card" data-slot-id="${slot.id}">
-                <div class="slot-label">${escapeHtml(slot.label)}</div>
-                <div class="slot-meta">${escapeHtml(slotPreviewText(slot.content))}</div>
+            <article class="slot-card${hasContent ? ' filled' : ''}" data-slot-id="${slot.id}">
+                <button type="button" class="slot-label" data-slot-action="rename" title="Tap to rename">${escapeHtml(slot.label)}</button>
                 <div class="slot-actions">
                     <button type="button" class="slot-load" data-slot-action="load" ${hasContent ? '' : 'disabled'}>Load</button>
                     <button type="button" class="slot-save" data-slot-action="save">Save</button>
-                    <button type="button" data-slot-action="rename">Rename</button>
                     <button type="button" class="slot-clear" data-slot-action="clear" ${hasContent ? '' : 'disabled'}>Clear</button>
                 </div>
             </article>
@@ -382,7 +378,7 @@ async function handleSlotAction(action, slotId) {
     if (action === 'rename') {
         const nextLabel = await promptText({
             title: 'Rename Slot',
-            message: 'Choose a custom label for this slot.',
+            message: 'Type a new name for this slot.',
             defaultValue: slot.label,
             confirmLabel: 'Rename'
         });
@@ -414,6 +410,9 @@ savedSlotsGrid.addEventListener('click', (event) => {
 
 loadUserSlots();
 renderSavedSlots();
+if (window.matchMedia('(min-width: 700px)').matches) {
+    savedSlotsPanel.open = true;
+}
 
 // --- School Vault (Supabase) ---
 

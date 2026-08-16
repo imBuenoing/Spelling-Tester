@@ -21,29 +21,34 @@
         <div id="setup-screen">
             <div class="neumorphic-panel">
                 <div class="form-group textarea-group">
-                    <label for="word-list">
-                        Enter Your List (one item per line)
-                        <div class="tooltip">ⓘ
-                            <span class="tooltiptext">
-                                Use **asterisks** for tested words in sentences. E.g., The sky is **blue**.<br><br>
-                                Numbering like '1.' or '1)' is accepted at the start of a line.<br><br>
-                                A paragraph with multiple sentences (and NO asterisks) will be treated as ONE dictation item, read sentence-by-sentence.
-                            </span>
+                    <div class="textarea-toolbar">
+                        <label for="word-list">
+                            Enter Your List (one item per line)
+                            <div class="tooltip">ⓘ
+                                <span class="tooltiptext">
+                                    Use **asterisks** for tested words in sentences. E.g., The sky is **blue**.<br><br>
+                                    Numbering like '1.' or '1)' is accepted at the start of a line.<br><br>
+                                    A paragraph with multiple sentences (and NO asterisks) will be treated as ONE dictation item, read sentence-by-sentence.
+                                </span>
+                            </div>
+                        </label>
+                        <div class="textarea-buttons">
+                            <button type="button" id="school-vault-btn" class="sample-text-btn school-vault-btn">School Vault</button>
+                            <button type="button" id="add-sample-btn" class="sample-text-btn">Add Sample</button>
+                            <button type="button" id="clear-list-btn" class="sample-text-btn">Clear List</button>
                         </div>
-                    </label>
-                    <div class="textarea-buttons">
-                        <button type="button" id="school-vault-btn" class="sample-text-btn school-vault-btn">School Vault</button>
-                        <button type="button" id="add-sample-btn" class="sample-text-btn">Add Sample</button>
-                        <button type="button" id="clear-list-btn" class="sample-text-btn">Clear List</button>
                     </div>
                     <textarea id="word-list" placeholder="e.g.&#10;1) conscientious&#10;2. The weather is **abominable**.&#10;This is a paragraph. It will be read sentence by sentence."></textarea>
                 </div>
 
-                <div id="saved-slots" class="saved-slots" aria-label="Saved slots">
-                    <div class="saved-slots-title">Saved Slots</div>
+                <details id="saved-slots" class="saved-slots">
+                    <summary class="saved-slots-summary">
+                        <span>Saved Slots</span>
+                        <span id="saved-slots-status" class="saved-slots-status"></span>
+                    </summary>
                     <div id="saved-slots-grid" class="saved-slots-grid"></div>
                     <p class="saved-slots-note">Note: Lists are saved locally in your browser. Clearing browsing history will erase these lists.</p>
-                </div>
+                </details>
                 
                 <h3>Settings</h3>
                 <div class="settings-grid">
@@ -143,7 +148,7 @@
                 </div>
 
             </div>
-            <button id="start-btn" class="neumorphic-button primary" style="width: 100%; margin-top: 30px; font-size: 1.5rem;" disabled>Loading Voices...</button>
+            <button id="start-btn" class="neumorphic-button primary full-width-cta" disabled>Loading Voices...</button>
         </div>
 
         <!-- ==================== TEST SCREEN ==================== -->
@@ -167,7 +172,7 @@
             </div>
             
             <button id="end-test-btn" class="neumorphic-button danger hidden">End Test</button>
-            <button id="start-test-btn" class="neumorphic-button primary" style="width: 100%; margin-top: 30px; font-size: 1.5rem;">Start Test</button>
+            <button id="start-test-btn" class="neumorphic-button primary full-width-cta">Start Test</button>
         </div>
         
         <!-- ==================== RESULTS SCREEN ==================== -->
