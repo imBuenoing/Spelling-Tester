@@ -790,40 +790,30 @@ function parseInput(rawText) {
 }
 
 function parseSingleLine(line) {
-    let textForUI = line;
+    let textForUI = String(line ?? '');
     let textForAudio = null;
 
-    // 1. Extract audio override if [ ] is present
-    const audioRegex = /\[(.*?)\]/g;
-    const audioMatch = textForUI.match(/\[(.*?)\]/);
+    const audioMatch = textForUI.match(/\[([\s\S]*?)\]/);
     if (audioMatch) {
         textForAudio = audioMatch[1];
-        textForUI = textForUI.replace(audioRegex, '').trim();
+        textForUI = textForUI.replace(/\[[\s\S]*?\]/g, '').trim();
     }
 
-    // 2. Process asterisks for tested parts
-    const asteriskRegex = /\*\*(.*?)\*\*/g;
-    let testedParts = [];
+    const testedParts = [];
+    const asteriskFinder = /\*\*([\s\S]*?)\*\*/g;
     let match;
-    asteriskRegex.lastIndex = 0;
-
-    while ((match = asteriskRegex.exec(textForUI)) !== null) {
+    while ((match = asteriskFinder.exec(textForUI)) !== null) {
         testedParts.push(match[1]);
     }
 
     const type = 'single';
     const toRead = textForAudio !== null ? textForAudio : textForUI.replace(/\*\*/g, '');
-
-    asteriskRegex.lastIndex = 0;
-    // STANDARD MODE: Replace **word** with _______
-    const context = testedParts.length > 0 ? textForUI.replace(asteriskRegex, '_______') : '';
-
-    asteriskRegex.lastIndex = 0;
-    // PRACTICE MODE: Replace **word** with styled span (brackets already removed)
-    const practiceText = testedParts.length > 0
-        ? textForUI.replace(asteriskRegex, '<span class="practice-highlight">$1</span>')
-        : textForUI.replace(/\*\*/g, '');
-
+    const context = testedParts.length > 0
+        ? textForUI.replace(/\*\*([\s\S]*?)\*\*/g, '_______')
+        : '';
+    const practiceText = textForUI.replace(/\*\*([\s\S]*?)\*\*/g, (_, word) => (
+        `<span class="practice-highlight">${escapeHtml(word)}</span>`
+    ));
     const testedPart = testedParts.length > 0 ? testedParts.join(' ') : textForUI.replace(/\*\*/g, '');
 
     return { type, original: line, toRead, context, practiceText, testedPart };
@@ -861,7 +851,6 @@ function startTest() {
     headerTagline.textContent = "You've got this! Stay focused and do your best!";
     autoNextCountdownDisplay.classList.add('hidden');
     updateUI();
-    contextDisplay.innerHTML = '';
 }
 
 function nextItem() {
@@ -1106,9 +1095,12 @@ function renderItemDisplay(item) {
         return;
     }
 
-    const isPracticeMode = $('practice-mode').checked;
+    const isPracticeMode = Boolean(settings.practiceMode);
     if (isPracticeMode) {
-        contextDisplay.innerHTML = item.practiceText || '';
+        const html = item.practiceText
+            || (item.sentences || []).map((sentence) => sentence.practiceText).filter(Boolean).join(' ')
+            || escapeHtml(item.toRead || '');
+        contextDisplay.innerHTML = html;
         return;
     }
 

@@ -362,6 +362,7 @@ input:checked + .slider:before {
 .practice-highlight {
     color: #3b82f6;
     font-weight: 700;
+    font-style: normal;
     text-decoration: underline;
     text-underline-offset: 4px;
 }
