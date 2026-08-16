@@ -175,8 +175,9 @@ header p { font-size: 0.95rem; color: var(--text-color); }
     transition: opacity 0.3s ease;
 }
 
+#setup-screen select,
 #setup-screen input[type="number"],
-#setup-screen select {
+.neumorphic-button {
     min-height: 44px;
 }
 
@@ -446,50 +447,26 @@ input:checked + .slider:before {
     box-shadow: inset 2px 2px 5px var(--dark-shadow), inset -2px -2px 5px var(--light-shadow);
 }
 
-.slot-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+.slot-label-input {
     flex: 1 1 auto;
     min-width: 0;
-    min-height: 44px;
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
-    padding: 4px 0;
-    text-align: left;
+    padding: 6px 4px;
     font-family: var(--font-family);
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     color: var(--text-color);
-    cursor: pointer;
-}
-
-.slot-label span {
-    overflow: hidden;
+    border-radius: 6px;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
+    transition: all 0.2s;
 }
 
-.slot-label::after {
-    content: "✏️";
-    flex-shrink: 0;
-    font-size: 0.85em;
-    line-height: 1;
-    opacity: 0.35;
-    transition: opacity 0.2s ease;
-}
-
-.slot-label:hover,
-.slot-label:focus {
-    color: var(--primary-color);
+.slot-label-input:hover,
+.slot-label-input:focus {
+    border-color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.4);
     outline: none;
-}
-
-.slot-label:hover::after,
-.slot-label:focus::after,
-.slot-label:focus-visible::after {
-    opacity: 1;
 }
 
 .slot-actions {
@@ -891,14 +868,6 @@ body.modal-open {
         flex-direction: column;
         align-items: stretch;
         padding: 8px;
-    }
-
-    .slot-label {
-        font-size: 0.85rem;
-    }
-
-    .slot-label span {
-        white-space: normal;
     }
 
     .slot-actions {
