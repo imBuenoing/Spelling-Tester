@@ -333,7 +333,7 @@ function renderSavedSlots() {
         const hasContent = slot.content.trim().length > 0;
         return `
             <article class="slot-card${hasContent ? ' filled' : ''}" data-slot-id="${slot.id}">
-                <button type="button" class="slot-label" data-slot-action="rename" title="Tap to rename">${escapeHtml(slot.label)}</button>
+                <button type="button" class="slot-label" data-slot-action="rename" title="Tap to rename" aria-label="Rename ${escapeHtml(slot.label)}"><span>${escapeHtml(slot.label)}</span></button>
                 <div class="slot-actions">
                     <button type="button" class="slot-load" data-slot-action="load" ${hasContent ? '' : 'disabled'}>Load</button>
                     <button type="button" class="slot-save" data-slot-action="save">Save</button>
