@@ -1,32 +1,138 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+// --- Config ---
+
+const USER_SLOTS_KEY = 'dictation_user_slots';
+const SLOT_COUNT = 3;
+const DEFAULT_SLOT_LABELS = ['Save 1', 'Save 2', 'Save 3'];
+
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+const SAMPLE_LIST = `1. My stomach felt like it was **full of fluttering butterflies**.
+2. As she waited for her turn, she felt **a lump form in her throat**.
+3. When Benny learnt that he had won the award, he **broke into a wide smile**.
+4. Marilyn's cheeks turned red and her **eyebrows narrowed**
+5. Max **giggled and squealed** with excitement upon hearing the good news.
+6. Tom's eyes **widened in fright** when he saw the shadow moving towards him.
+7. As my grandmother was taking a stroll in the garden, her **hands swayed by her side**.
+8. His face was **etched with sorrow** when he learnt that his pet went missing.
+9. The children **shouted with glee** in their loudest voice.
+10. Father was calm as he spoke in a **slow and steady voice**.
+11. Jack's face turned red and blotchy. His mouth opened wide, revealing his tightly clenched teeth. His cheeks were raised till his eyes were squinted. He was shaking and he started stamping his feet on the ground. Then, he growled at his sister in a gravelly voice.`;
+
+// --- Shared helpers ---
+
+const $ = (id) => document.getElementById(id);
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function sanitizeListText(text) {
+    return String(text ?? '').replace(/\r\n/g, '\n').trimEnd();
+}
+
+function setWordList(text) {
+    wordListInput.value = sanitizeListText(text);
+}
+
+function showScreen(screenEl) {
+    [setupScreen, testScreen, resultsScreen].forEach((el) => {
+        el.classList.toggle('hidden', el !== screenEl);
+    });
+}
+
+function openModal(modalEl) {
+    modalEl.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+}
+
+function closeModal(modalEl) {
+    modalEl.classList.add('hidden');
+    const anyOpen = document.querySelector('.modal-overlay:not(.hidden)');
+    if (!anyOpen) document.body.classList.remove('modal-open');
+}
+
+function closeAllModals() {
+    document.querySelectorAll('.modal-overlay').forEach(closeModal);
+}
+
+function bindModalDismiss(modalEl) {
+    modalEl.addEventListener('click', (event) => {
+        if (event.target === modalEl || event.target.closest('[data-close-modal]')) {
+            closeModal(modalEl);
+        }
+    });
+}
+
+function uniqueSorted(values) {
+    return [...new Set(values.filter(Boolean).map(String))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function fillSelect(selectEl, values, placeholder) {
+    const current = selectEl.value;
+    selectEl.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>` +
+        values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+    if (values.includes(current)) selectEl.value = current;
+}
+
+function isPlaceholderCredential(value) {
+    if (!value || typeof value !== 'string') return true;
+    const trimmed = value.trim();
+    return trimmed === '' || /^YOUR_/i.test(trimmed) || trimmed.includes('YOUR_SUPABASE');
+}
+
+function isSupabaseConfigured() {
+    return !isPlaceholderCredential(SUPABASE_URL) && !isPlaceholderCredential(SUPABASE_ANON_KEY);
+}
+
 // --- DOM Elements ---
 
-const setupScreen = document.getElementById('setup-screen');
-const testScreen = document.getElementById('test-screen');
-const resultsScreen = document.getElementById('results-screen');
-const startBtn = document.getElementById('start-btn');
-const wordListInput = document.getElementById('word-list');
-const addSampleBtn = document.getElementById('add-sample-btn');
-const clearListBtn = document.getElementById('clear-list-btn');
-const timerDisplay = document.getElementById('timer');
-const autoNextCountdownDisplay = document.getElementById('auto-next-countdown');
-const progressDisplay = document.getElementById('progress');
-const contextDisplay = document.getElementById('context');
-const readAgainBtn = document.getElementById('read-again-btn');
-const repeatSentenceBtn = document.getElementById('repeat-sentence-btn');
-const nextSentenceBtn = document.getElementById('next-sentence-btn');
-const readNextBtn = document.getElementById('read-next-btn');
-const endTestBtn = document.getElementById('end-test-btn');
-const startTestBtn = document.getElementById('start-test-btn');
-const resetBtn = document.getElementById('reset-btn');
-const rereadAllBtn = document.getElementById('reread-all-btn');
-const languageSelect = document.getElementById('language-select');
-const timerModeSelect = document.getElementById('timer-mode');
-const countdownGroup = document.getElementById('countdown-minutes-group');
-const recurringReadoutCheckbox = document.getElementById('recurring-readout');
-const autoNextDelayInput = document.getElementById('auto-next-delay');
-const headerTagline = document.getElementById('header-tagline');
+const setupScreen = $('setup-screen');
+const testScreen = $('test-screen');
+const resultsScreen = $('results-screen');
+const startBtn = $('start-btn');
+const wordListInput = $('word-list');
+const addSampleBtn = $('add-sample-btn');
+const clearListBtn = $('clear-list-btn');
+const schoolVaultBtn = $('school-vault-btn');
+const savedSlotsGrid = $('saved-slots-grid');
+const timerDisplay = $('timer');
+const autoNextCountdownDisplay = $('auto-next-countdown');
+const progressDisplay = $('progress');
+const contextDisplay = $('context');
+const readAgainBtn = $('read-again-btn');
+const repeatSentenceBtn = $('repeat-sentence-btn');
+const nextSentenceBtn = $('next-sentence-btn');
+const readNextBtn = $('read-next-btn');
+const endTestBtn = $('end-test-btn');
+const startTestBtn = $('start-test-btn');
+const resetBtn = $('reset-btn');
+const rereadAllBtn = $('reread-all-btn');
+const languageSelect = $('language-select');
+const timerModeSelect = $('timer-mode');
+const countdownGroup = $('countdown-minutes-group');
+const recurringReadoutCheckbox = $('recurring-readout');
+const autoNextDelayInput = $('auto-next-delay');
+const headerTagline = $('header-tagline');
+const promptModal = $('prompt-modal');
+const promptModalTitle = $('prompt-modal-title');
+const promptModalMessage = $('prompt-modal-message');
+const promptModalInput = $('prompt-modal-input');
+const promptModalConfirm = $('prompt-modal-confirm');
+const schoolVaultModal = $('school-vault-modal');
+const vaultFilterSchool = $('vault-filter-school');
+const vaultFilterLevel = $('vault-filter-level');
+const vaultFilterYear = $('vault-filter-year');
+const vaultStatus = $('vault-status');
+const vaultList = $('vault-list');
+const vaultPreview = $('vault-preview');
 
 // --- App State & Settings ---
 
@@ -35,10 +141,15 @@ let currentIndex = -1;
 let currentParagraphSentenceIndex = 0;
 let settings = {};
 let mainTimerInterval;
-let actionTimers = { reread: null, autoNext: null, autoNextCountdown: null, recurringRead: null };
+let actionTimers = { reread: null, autoNext: null, autoNextCountdown: null, recurringRead: null, nextItem: null };
 let voices = [];
 const synth = window.speechSynthesis;
 let testHasStarted = false;
+let userSlots = createDefaultSlots();
+let promptResolver = null;
+let supabaseClient = null;
+let vaultLists = [];
+let selectedVaultId = null;
 
 // --- Voice Loading and Prioritization ---
 
@@ -67,7 +178,7 @@ function populateVoices() {
     let availableVoices = voices.filter(voice => desiredLangs.some(lang => voice.lang.startsWith(lang)));
     availableVoices.sort((a, b) => getVoiceScore(b) - getVoiceScore(a));
 
-    if(availableVoices.length === 0) {
+    if (availableVoices.length === 0) {
         languageSelect.innerHTML = 'No English/Chinese voices found';
         startBtn.disabled = true;
         startBtn.textContent = 'Speech API Error';
@@ -102,24 +213,357 @@ if (synth.onvoiceschanged !== undefined) {
 populateVoices();
 setTimeout(populateVoices, 100);
 
+// --- Prompt modal ---
+
+function promptText({ title, message, defaultValue = '', confirmLabel = 'Save' }) {
+    return new Promise((resolve) => {
+        if (promptResolver) promptResolver(null);
+        promptResolver = resolve;
+        promptModalTitle.textContent = title;
+        promptModalMessage.textContent = message;
+        promptModalConfirm.textContent = confirmLabel;
+        promptModalInput.value = defaultValue;
+        openModal(promptModal);
+        promptModalInput.focus();
+        promptModalInput.select();
+    });
+}
+
+function resolvePrompt(value) {
+    if (!promptResolver) return;
+    const resolver = promptResolver;
+    promptResolver = null;
+    closeModal(promptModal);
+    resolver(value);
+}
+
+promptModalConfirm.addEventListener('click', () => resolvePrompt(promptModalInput.value));
+promptModalInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        resolvePrompt(promptModalInput.value);
+    }
+});
+bindModalDismiss(promptModal);
+promptModal.addEventListener('click', (event) => {
+    if (event.target === promptModal || event.target.closest('[data-close-modal]')) {
+        resolvePrompt(null);
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (!promptModal.classList.contains('hidden')) {
+        resolvePrompt(null);
+        return;
+    }
+    closeAllModals();
+});
+
+// --- Saved slots (localStorage) ---
+
+function createDefaultSlots() {
+    return {
+        slots: DEFAULT_SLOT_LABELS.map((label, index) => ({
+            id: index + 1,
+            label,
+            content: ''
+        }))
+    };
+}
+
+function loadUserSlots() {
+    try {
+        const raw = localStorage.getItem(USER_SLOTS_KEY);
+        if (!raw) {
+            userSlots = createDefaultSlots();
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.slots) || parsed.slots.length !== SLOT_COUNT) {
+            userSlots = createDefaultSlots();
+            persistUserSlots();
+            return;
+        }
+        userSlots = {
+            slots: parsed.slots.map((slot, index) => ({
+                id: index + 1,
+                label: (slot && slot.label && String(slot.label).trim()) || DEFAULT_SLOT_LABELS[index],
+                content: slot && typeof slot.content === 'string' ? slot.content : ''
+            }))
+        };
+    } catch (error) {
+        console.warn('Could not read saved slots:', error);
+        userSlots = createDefaultSlots();
+    }
+}
+
+function persistUserSlots() {
+    localStorage.setItem(USER_SLOTS_KEY, JSON.stringify(userSlots));
+}
+
+function slotPreviewText(content) {
+    const trimmed = content.trim();
+    if (!trimmed) return 'Empty';
+    const firstLine = trimmed.split('\n')[0];
+    return firstLine.length > 42 ? `${firstLine.slice(0, 42)}…` : firstLine;
+}
+
+function renderSavedSlots() {
+    savedSlotsGrid.innerHTML = userSlots.slots.map((slot) => {
+        const hasContent = slot.content.trim().length > 0;
+        return `
+            <article class="slot-card" data-slot-id="${slot.id}">
+                <div class="slot-label">${escapeHtml(slot.label)}</div>
+                <div class="slot-meta">${escapeHtml(slotPreviewText(slot.content))}</div>
+                <div class="slot-actions">
+                    <button type="button" class="slot-load" data-slot-action="load" ${hasContent ? '' : 'disabled'}>Load</button>
+                    <button type="button" class="slot-save" data-slot-action="save">Save</button>
+                    <button type="button" data-slot-action="rename">Rename</button>
+                    <button type="button" class="slot-clear" data-slot-action="clear" ${hasContent ? '' : 'disabled'}>Clear</button>
+                </div>
+            </article>
+        `;
+    }).join('');
+}
+
+function getSlotById(id) {
+    return userSlots.slots.find((slot) => slot.id === Number(id));
+}
+
+async function handleSlotAction(action, slotId) {
+    const slot = getSlotById(slotId);
+    if (!slot) return;
+
+    if (action === 'load') {
+        if (!slot.content.trim()) return;
+        setWordList(slot.content);
+        wordListInput.focus();
+        return;
+    }
+
+    if (action === 'save') {
+        const currentText = wordListInput.value;
+        if (!currentText.trim()) {
+            alert('Enter a list in the text field before saving.');
+            return;
+        }
+        if (slot.content.trim() && slot.content !== currentText) {
+            const overwrite = window.confirm(`Overwrite "${slot.label}" with the current list?`);
+            if (!overwrite) return;
+        }
+        slot.content = currentText;
+        persistUserSlots();
+        renderSavedSlots();
+        return;
+    }
+
+    if (action === 'rename') {
+        const nextLabel = await promptText({
+            title: 'Rename Slot',
+            message: 'Choose a custom label for this slot.',
+            defaultValue: slot.label,
+            confirmLabel: 'Rename'
+        });
+        if (nextLabel === null) return;
+        const trimmed = nextLabel.trim();
+        slot.label = trimmed || DEFAULT_SLOT_LABELS[slot.id - 1];
+        persistUserSlots();
+        renderSavedSlots();
+        return;
+    }
+
+    if (action === 'clear') {
+        if (!slot.content.trim() && slot.label === DEFAULT_SLOT_LABELS[slot.id - 1]) return;
+        const confirmed = window.confirm(`Clear "${slot.label}" and reset its label?`);
+        if (!confirmed) return;
+        slot.content = '';
+        slot.label = DEFAULT_SLOT_LABELS[slot.id - 1];
+        persistUserSlots();
+        renderSavedSlots();
+    }
+}
+
+savedSlotsGrid.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-slot-action]');
+    if (!button) return;
+    const card = button.closest('[data-slot-id]');
+    handleSlotAction(button.dataset.slotAction, card.dataset.slotId);
+});
+
+loadUserSlots();
+renderSavedSlots();
+
+// --- School Vault (Supabase) ---
+
+function getSupabaseClient() {
+    if (!isSupabaseConfigured()) return null;
+    if (supabaseClient) return supabaseClient;
+    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+        throw new Error('Supabase library failed to load. Check your network connection and try again.');
+    }
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return supabaseClient;
+}
+
+function setVaultStatus(type, message, { spinner = false } = {}) {
+    if (!type) {
+        vaultStatus.hidden = true;
+        vaultStatus.className = 'vault-status';
+        vaultStatus.innerHTML = '';
+        return;
+    }
+    vaultStatus.hidden = false;
+    vaultStatus.className = `vault-status ${type}`;
+    vaultStatus.innerHTML = spinner
+        ? `<span class="spinner" aria-hidden="true"></span><span>${escapeHtml(message)}</span>`
+        : escapeHtml(message);
+}
+
+function resetVaultPreview() {
+    selectedVaultId = null;
+    vaultPreview.innerHTML = '<p class="vault-preview-empty">Select a list to preview it here.</p>';
+    vaultList.querySelectorAll('.vault-list-item').forEach((el) => el.classList.remove('selected'));
+}
+
+function getFilteredVaultLists() {
+    const school = vaultFilterSchool.value;
+    const level = vaultFilterLevel.value;
+    const year = vaultFilterYear.value;
+    return vaultLists.filter((item) => {
+        if (school && String(item.school_name) !== school) return false;
+        if (level && String(item.level) !== level) return false;
+        if (year && String(item.year) !== year) return false;
+        return true;
+    });
+}
+
+function renderVaultFilters() {
+    fillSelect(vaultFilterSchool, uniqueSorted(vaultLists.map((item) => item.school_name)), 'All schools');
+    fillSelect(vaultFilterLevel, uniqueSorted(vaultLists.map((item) => item.level)), 'All levels');
+    fillSelect(vaultFilterYear, uniqueSorted(vaultLists.map((item) => item.year)), 'All years');
+}
+
+function renderVaultList() {
+    const items = getFilteredVaultLists();
+    if (items.length === 0) {
+        vaultList.innerHTML = '<p class="vault-empty">No spelling lists match these filters.</p>';
+        if (selectedVaultId && !items.some((item) => item.id === selectedVaultId)) {
+            resetVaultPreview();
+        }
+        return;
+    }
+
+    vaultList.innerHTML = items.map((item) => `
+        <button type="button" class="vault-list-item${item.id === selectedVaultId ? ' selected' : ''}" data-list-id="${escapeHtml(item.id)}" role="listitem">
+            <strong>${escapeHtml(item.title || 'Untitled list')}</strong>
+            <span>${escapeHtml([item.school_name, item.level, item.year].filter(Boolean).join(' · '))}</span>
+        </button>
+    `).join('');
+}
+
+function renderVaultPreview(item) {
+    if (!item) {
+        resetVaultPreview();
+        return;
+    }
+    selectedVaultId = item.id;
+    vaultPreview.innerHTML = `
+        <div class="vault-preview-title">${escapeHtml(item.title || 'Untitled list')}</div>
+        <div class="vault-preview-meta">${escapeHtml([item.school_name, item.level, item.year].filter(Boolean).join(' · '))}</div>
+        <pre class="vault-preview-content">${escapeHtml(item.content || '')}</pre>
+        <button type="button" id="vault-load-btn" class="neumorphic-button primary vault-load-btn">Load List</button>
+    `;
+}
+
+async function fetchSchoolLists() {
+    const client = getSupabaseClient();
+    setVaultStatus('loading', 'Loading school lists…', { spinner: true });
+    vaultList.innerHTML = '';
+    resetVaultPreview();
+
+    const { data, error } = await client
+        .from('school_lists')
+        .select('id, school_name, level, year, title, content')
+        .order('school_name', { ascending: true })
+        .order('year', { ascending: false })
+        .order('title', { ascending: true });
+
+    if (error) {
+        throw new Error(error.message || 'Could not load school lists.');
+    }
+
+    vaultLists = Array.isArray(data) ? data : [];
+    renderVaultFilters();
+    renderVaultList();
+
+    if (vaultLists.length === 0) {
+        setVaultStatus('info', 'No school lists have been published yet.');
+    } else {
+        setVaultStatus(null);
+    }
+}
+
+async function openSchoolVault() {
+    openModal(schoolVaultModal);
+    vaultLists = [];
+    renderVaultFilters();
+    vaultList.innerHTML = '';
+    resetVaultPreview();
+
+    if (!isSupabaseConfigured()) {
+        setVaultStatus(
+            'error',
+            'School Vault is not connected yet. Add your Supabase URL and anon key in script.js (SUPABASE_URL and SUPABASE_ANON_KEY).'
+        );
+        return;
+    }
+
+    try {
+        await fetchSchoolLists();
+    } catch (error) {
+        console.error('School Vault fetch failed:', error);
+        setVaultStatus('error', error.message || 'Network request failed. Please try again.');
+    }
+}
+
+function loadSelectedVaultList() {
+    const item = vaultLists.find((list) => String(list.id) === String(selectedVaultId));
+    if (!item) return;
+    setWordList(item.content || '');
+    closeModal(schoolVaultModal);
+    wordListInput.focus();
+}
+
+schoolVaultBtn.addEventListener('click', openSchoolVault);
+bindModalDismiss(schoolVaultModal);
+
+[vaultFilterSchool, vaultFilterLevel, vaultFilterYear].forEach((selectEl) => {
+    selectEl.addEventListener('change', renderVaultList);
+});
+
+vaultList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-list-id]');
+    if (!button) return;
+    const item = vaultLists.find((list) => String(list.id) === String(button.dataset.listId));
+    if (!item) return;
+    selectedVaultId = item.id;
+    renderVaultList();
+    renderVaultPreview(item);
+});
+
+vaultPreview.addEventListener('click', (event) => {
+    if (event.target.id === 'vault-load-btn') loadSelectedVaultList();
+});
+
 // --- Event Listeners ---
 
 addSampleBtn.addEventListener('click', () => {
-    wordListInput.value = `1. My stomach felt like it was **full of fluttering butterflies**.
-2. As she waited for her turn, she felt **a lump form in her throat**.
-3. When Benny learnt that he had won the award, he **broke into a wide smile**.
-4. Marilyn's cheeks turned red and her **eyebrows narrowed**
-5. Max **giggled and squealed** with excitement upon hearing the good news.
-6. Tom's eyes **widened in fright** when he saw the shadow moving towards him.
-7. As my grandmother was taking a stroll in the garden, her **hands swayed by her side**.
-8. His face was **etched with sorrow** when he learnt that his pet went missing.
-9. The children **shouted with glee** in their loudest voice.
-10. Father was calm as he spoke in a **slow and steady voice**.
-11. Jack's face turned red and blotchy. His mouth opened wide, revealing his tightly clenched teeth. His cheeks were raised till his eyes were squinted. He was shaking and he started stamping his feet on the ground. Then, he growled at his sister in a gravelly voice.`;
+    setWordList(SAMPLE_LIST);
 });
 
 clearListBtn.addEventListener('click', () => {
-    wordListInput.value = '';
+    setWordList('');
 });
 
 startBtn.addEventListener('click', startTest);
@@ -166,8 +610,7 @@ readNextBtn.addEventListener('click', nextItem);
 endTestBtn.addEventListener('click', () => endTest(false));
 
 resetBtn.addEventListener('click', () => {
-    resultsScreen.classList.add('hidden');
-    setupScreen.classList.remove('hidden');
+    showScreen(setupScreen);
     currentIndex = -1;
     currentParagraphSentenceIndex = 0;
     testHasStarted = false;
@@ -216,20 +659,20 @@ function gatherSettings() {
     const selectedOption = languageSelect.options[languageSelect.selectedIndex];
     const selectedVoiceURI = selectedOption ? selectedOption.getAttribute('data-voice-uri') : null;
 
-    const rereadGap = Math.min(parseInt(document.getElementById('reread-gap').value, 10), 30);
-    const nextItemGap = Math.min(parseInt(document.getElementById('next-item-gap').value, 10), 10);
+    const rereadGap = Math.min(parseInt($('reread-gap').value, 10), 30);
+    const nextItemGap = Math.min(parseInt($('next-item-gap').value, 10), 10);
 
     settings = {
         rereadGap: rereadGap * 1000,
         nextItemGap: nextItemGap * 1000,
         autoNextDelay: autoNext * 1000,
         timerMode: timerModeSelect.value,
-        countdownMinutes: parseInt(document.getElementById('countdown-minutes').value, 10),
-        showContext: document.getElementById('show-context').value === 'true',
-        randomize: document.getElementById('randomize-list').checked,
-        readingSpeed: parseFloat(document.getElementById('reading-speed').value),
+        countdownMinutes: parseInt($('countdown-minutes').value, 10),
+        showContext: $('show-context').value === 'true',
+        randomize: $('randomize-list').checked,
+        readingSpeed: parseFloat($('reading-speed').value),
         recurringReadout: recurringReadout,
-        readPunctuation: document.getElementById('read-punctuation').value === 'true',
+        readPunctuation: $('read-punctuation').value === 'true',
         voice: voices.find(v => v.voiceURI === selectedVoiceURI)
     };
 }
@@ -253,7 +696,7 @@ function parseInput(rawText) {
 
             if (actualSentences.length > 1) {
                 parsedItems.push({
-                    type: 'paragraph', 
+                    type: 'paragraph',
                     original: cleanedLine,
                     sentences: actualSentences.map(s => parseSingleLine(s)),
                     testedPart: cleanedLine
@@ -293,7 +736,7 @@ function startTest() {
     }
 
     testItems = parseInput(rawText);
-    if(testItems.length === 0) {
+    if (testItems.length === 0) {
         alert('No valid items found in the list.');
         return;
     }
@@ -309,9 +752,7 @@ function startTest() {
     currentParagraphSentenceIndex = 0;
     testHasStarted = false;
 
-    setupScreen.classList.add('hidden');
-    resultsScreen.classList.add('hidden');
-    testScreen.classList.remove('hidden');
+    showScreen(testScreen);
     headerTagline.textContent = "You've got this! Stay focused and do your best!";
     autoNextCountdownDisplay.classList.add('hidden');
     updateUI();
@@ -441,12 +882,9 @@ function addPunctuationWords(text) {
     const isChinese = settings.voice && settings.voice.lang.startsWith('zh');
     let result = text;
 
-    // Use multiple spaces and word "pause" to create natural breaks
-    // Multiple spaces often create pauses in TTS without being spoken
-    const spacePause = '     ';  // 5 spaces creates a pause in most TTS engines
+    const spacePause = '     ';
 
     if (isChinese) {
-        // Replace Chinese punctuation with paused spoken names
         const replacements = [
             ['。', spacePause + '句号' + spacePause],
             ['，', spacePause + '逗号' + spacePause],
@@ -476,7 +914,6 @@ function addPunctuationWords(text) {
             result = result.split(punct).join(word);
         }
     } else {
-        // Replace English punctuation with paused spoken names
         const replacements = [
             ['.', spacePause + 'period' + spacePause],
             [',', spacePause + 'comma' + spacePause],
@@ -565,7 +1002,6 @@ function endTest(isFinished = false) {
     clearInterval(mainTimerInterval);
     clearAllActionTimers();
     synth.cancel();
-    testScreen.classList.add('hidden');
     testHasStarted = false;
 
     startTestBtn.classList.remove('hidden');
@@ -578,17 +1014,14 @@ function endTest(isFinished = false) {
     contextDisplay.innerHTML = '';
     headerTagline.textContent = "Enter your list, set your pace, and start testing!";
 
-    if (isFinished) {
-        resultsScreen.classList.remove('hidden');
-    } else {
-        setupScreen.classList.remove('hidden');
-    }
+    showScreen(isFinished ? resultsScreen : setupScreen);
 }
 
 function clearAllActionTimers() {
     clearTimeout(actionTimers.reread);
     clearTimeout(actionTimers.autoNext);
     clearTimeout(actionTimers.recurringRead);
+    clearTimeout(actionTimers.nextItem);
     clearInterval(actionTimers.autoNextCountdown);
     autoNextCountdownDisplay.classList.add('hidden');
 }

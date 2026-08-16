@@ -32,10 +32,17 @@
                         </div>
                     </label>
                     <div class="textarea-buttons">
-                        <button id="add-sample-btn" class="sample-text-btn">Add Sample</button>
-                        <button id="clear-list-btn" class="sample-text-btn">Clear List</button>
+                        <button type="button" id="school-vault-btn" class="sample-text-btn school-vault-btn">School Vault</button>
+                        <button type="button" id="add-sample-btn" class="sample-text-btn">Add Sample</button>
+                        <button type="button" id="clear-list-btn" class="sample-text-btn">Clear List</button>
                     </div>
                     <textarea id="word-list" placeholder="e.g.&#10;1) conscientious&#10;2. The weather is **abominable**.&#10;This is a paragraph. It will be read sentence by sentence."></textarea>
+                </div>
+
+                <div id="saved-slots" class="saved-slots" aria-label="Saved slots">
+                    <div class="saved-slots-title">Saved Slots</div>
+                    <div id="saved-slots-grid" class="saved-slots-grid"></div>
+                    <p class="saved-slots-note">Note: Lists are saved locally in your browser. Clearing browsing history will erase these lists.</p>
                 </div>
                 
                 <h3>Settings</h3>
@@ -173,12 +180,67 @@
                     <button id="reset-btn" class="neumorphic-button primary">Start New Test</button>
                 </div>
             </div>
-        </div><div style="margin-top: 20px; text-align: center;">
+        </div>
+
+        <div class="bmc-wrap">
             <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="Juino" data-color="#FFDD00" data-emoji="" data-font="Cookie" data-text="Buy Juino a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
         </div>
 
     </div>
 
+    <!-- ==================== SHARED MODALS ==================== -->
+    <div id="prompt-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-modal-title">
+        <div class="modal-dialog prompt-dialog">
+            <div class="modal-header">
+                <h2 id="prompt-modal-title">Rename Slot</h2>
+                <button type="button" class="modal-close" data-close-modal aria-label="Close">&times;</button>
+            </div>
+            <p id="prompt-modal-message" class="modal-message"></p>
+            <input type="text" id="prompt-modal-input" maxlength="60" autocomplete="off">
+            <div class="modal-actions">
+                <button type="button" id="prompt-modal-cancel" class="neumorphic-button" data-close-modal>Cancel</button>
+                <button type="button" id="prompt-modal-confirm" class="neumorphic-button primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="school-vault-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="school-vault-title">
+        <div class="modal-dialog school-vault-dialog">
+            <div class="modal-header">
+                <h2 id="school-vault-title">School Vault</h2>
+                <button type="button" class="modal-close" data-close-modal aria-label="Close">&times;</button>
+            </div>
+            <div class="vault-filters">
+                <div class="form-group">
+                    <label for="vault-filter-school">School</label>
+                    <select id="vault-filter-school">
+                        <option value="">All schools</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="vault-filter-level">Level</label>
+                    <select id="vault-filter-level">
+                        <option value="">All levels</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="vault-filter-year">Year</label>
+                    <select id="vault-filter-year">
+                        <option value="">All years</option>
+                    </select>
+                </div>
+            </div>
+            <div id="vault-status" class="vault-status" hidden></div>
+            <div class="vault-body">
+                <div id="vault-list" class="vault-list" role="list"></div>
+                <div id="vault-preview" class="vault-preview">
+                    <p class="vault-preview-empty">Select a list to preview it here.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js" defer></script>
     <script data-goatcounter="https://imbuenoing.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
