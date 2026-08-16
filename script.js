@@ -816,7 +816,7 @@ function parseSingleLine(line) {
     ));
     const testedPart = testedParts.length > 0 ? testedParts.join(' ') : textForUI.replace(/\*\*/g, '');
 
-    return { type, original: line, toRead, context, practiceText, testedPart };
+    return { type, original: line, toRead, context, practiceText, testedPart, audioOverride: textForAudio };
 }
 
 function startTest() {
@@ -1062,18 +1062,50 @@ function startAutoNextCountdown() {
     }
 }
 
+function speechTextForReread(item) {
+    if (item.type === 'paragraph' && Array.isArray(item.sentences)) {
+        return item.sentences.map(speechTextForReread).filter(Boolean);
+    }
+
+    if (item.audioOverride) {
+        return item.audioOverride.trim();
+    }
+
+    const tested = (item.testedPart || '').trim();
+    const spoken = (item.toRead || '').trim();
+    if (spoken && containsChinese(spoken) && !containsChinese(tested)) {
+        return spoken;
+    }
+    return tested || spoken;
+}
+
+let rereadGeneration = 0;
 function rereadAllTestedWords() {
+    const generation = ++rereadGeneration;
+    const parts = testItems.flatMap((item) => {
+        const text = speechTextForReread(item);
+        return Array.isArray(text) ? text : [text];
+    }).map((text) => String(text || '').trim()).filter(Boolean);
+
     let i = 0;
-    const speakNextTestedPart = () => {
-        if (i >= testItems.length) return;
-        const item = testItems[i];
-        const utterance = new SpeechSynthesisUtterance(item.testedPart);
-        utterance.voice = settings.voice;
-        utterance.rate = 1.25;
-        utterance.onend = () => { i++; speakNextTestedPart(); };
+    const speakNext = () => {
+        if (generation !== rereadGeneration) return;
+        if (i >= parts.length) return;
+        const text = parts[i];
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = voiceForText(text);
+        utterance.rate = containsChinese(text) ? 1 : 1.25;
+        utterance.onend = () => {
+            i += 1;
+            setTimeout(speakNext, containsChinese(text) ? 320 : 80);
+        };
+        utterance.onerror = () => {
+            i += 1;
+            speakNext();
+        };
         synth.speak(utterance);
     };
-    speakNextTestedPart();
+    speakNext();
 }
 
 function updateRepeatButtonUI() {
