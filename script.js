@@ -776,18 +776,32 @@ function parseInput(rawText) {
 }
 
 function parseSingleLine(line) {
+    let textForUI = line;
+    let textForAudio = null;
+
+    // 1. Extract audio override if [ ] is present (e.g., [举手])
+    const audioRegex = /\[(.*?)\]/;
+    const audioMatch = textForUI.match(audioRegex);
+    if (audioMatch) {
+        textForAudio = audioMatch[1]; // What the voice will say
+        textForUI = textForUI.replace(audioRegex, '').trim(); // Hide it from the screen
+    }
+
+    // 2. Process asterisks for tested parts
     const asteriskRegex = /\*\*(.*?)\*\*/g;
     let testedParts = [];
     let match;
     asteriskRegex.lastIndex = 0;
-    while ((match = asteriskRegex.exec(line)) !== null) {
+
+    while ((match = asteriskRegex.exec(textForUI)) !== null) {
         testedParts.push(match[1]);
     }
 
     const type = 'single';
-    const toRead = line.replace(/\*\*/g, '');
-    const context = testedParts.length > 0 ? line.replace(asteriskRegex, `_______`) : '';
-    const testedPart = testedParts.length > 0 ? testedParts.join(' ') : toRead;
+    // If [ ] was used, audio reads the brackets. Otherwise, it reads the UI text without asterisks.
+    const toRead = textForAudio !== null ? textForAudio : textForUI.replace(/\*\*/g, '');
+    const context = testedParts.length > 0 ? textForUI.replace(asteriskRegex, '_______') : '';
+    const testedPart = testedParts.length > 0 ? testedParts.join(' ') : textForUI.replace(/\*\*/g, '');
 
     return { type, original: line, toRead, context, testedPart };
 }
