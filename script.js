@@ -141,7 +141,6 @@ const wordListInput = $('word-list');
 const addSampleBtn = $('add-sample-btn');
 const clearListBtn = $('clear-list-btn');
 const schoolVaultBtn = $('school-vault-btn');
-const savedSlotsPanel = $('saved-slots');
 const savedSlotsGrid = $('saved-slots-grid');
 const savedSlotsStatus = $('saved-slots-status');
 const timerDisplay = $('timer');
@@ -351,7 +350,7 @@ function renderSavedSlots() {
         const hasContent = slot.content.trim().length > 0;
         return `
             <article class="slot-card${hasContent ? ' filled' : ''}" data-slot-id="${slot.id}">
-                <button type="button" class="slot-label" data-slot-action="rename" title="Tap to rename" aria-label="Rename ${escapeHtml(slot.label)}"><span>${escapeHtml(slot.label)}</span></button>
+                <input type="text" class="slot-label-input" data-slot-id="${slot.id}" value="${escapeHtml(slot.label)}" placeholder="${DEFAULT_SLOT_LABELS[slot.id - 1]}" />
                 <div class="slot-actions">
                     <button type="button" class="slot-load" data-slot-action="load" ${hasContent ? '' : 'disabled'}>Load</button>
                     <button type="button" class="slot-save" data-slot-action="save">Save</button>
@@ -366,7 +365,7 @@ function getSlotById(id) {
     return userSlots.slots.find((slot) => slot.id === Number(id));
 }
 
-async function handleSlotAction(action, slotId) {
+function handleSlotAction(action, slotId) {
     const slot = getSlotById(slotId);
     if (!slot) return;
 
@@ -393,21 +392,6 @@ async function handleSlotAction(action, slotId) {
         return;
     }
 
-    if (action === 'rename') {
-        const nextLabel = await promptText({
-            title: 'Rename Slot',
-            message: 'Type a new name for this slot.',
-            defaultValue: slot.label,
-            confirmLabel: 'Rename'
-        });
-        if (nextLabel === null) return;
-        const trimmed = nextLabel.trim();
-        slot.label = trimmed || DEFAULT_SLOT_LABELS[slot.id - 1];
-        persistUserSlots();
-        renderSavedSlots();
-        return;
-    }
-
     if (action === 'clear') {
         if (!slot.content.trim() && slot.label === DEFAULT_SLOT_LABELS[slot.id - 1]) return;
         const confirmed = window.confirm(`Clear "${slot.label}" and reset its label?`);
@@ -426,11 +410,18 @@ savedSlotsGrid.addEventListener('click', (event) => {
     handleSlotAction(button.dataset.slotAction, card.dataset.slotId);
 });
 
+savedSlotsGrid.addEventListener('change', (event) => {
+    if (!event.target.classList.contains('slot-label-input')) return;
+    const slot = getSlotById(event.target.dataset.slotId);
+    if (!slot) return;
+    const nextLabel = event.target.value.trim();
+    slot.label = nextLabel || DEFAULT_SLOT_LABELS[slot.id - 1];
+    event.target.value = slot.label;
+    persistUserSlots();
+});
+
 loadUserSlots();
 renderSavedSlots();
-if (window.matchMedia('(min-width: 700px)').matches) {
-    savedSlotsPanel.open = true;
-}
 
 // --- School Vault (Supabase) ---
 
@@ -765,7 +756,7 @@ function parseInput(rawText) {
         if (hasAsterisk) {
             parsedItems.push(parseSingleLine(cleanedLine));
         } else {
-            const sentences = cleanedLine.match(/[^.?!。？！]+[.?!。？！]|\s\w+\s\w+\s\w+/g) || [cleanedLine];
+            const sentences = cleanedLine.match(/[^.?!。？！，,]+[.?!。？！，,]*|\s\w+\s\w+\s\w+/g) || [cleanedLine];
             const actualSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
 
             if (actualSentences.length > 1) {
@@ -865,6 +856,19 @@ function _startNextItem() {
     }, settings.nextItemGap);
 }
 
+function containsChinese(str) {
+    return /[\u4e00-\u9fa5]/.test(str);
+}
+
+function voiceForText(text) {
+    const selectedVoice = settings.voice;
+    if (containsChinese(text) && selectedVoice && !selectedVoice.lang.startsWith('zh')) {
+        const zhVoice = voices.find((voice) => voice.lang && voice.lang.startsWith('zh'));
+        if (zhVoice) return zhVoice;
+    }
+    return selectedVoice;
+}
+
 function readCurrentItem(isManualRetry = false, keepCurrentSentence = false) {
     clearSpeechAndTimersExceptMain();
     const item = testItems[currentIndex];
@@ -889,7 +893,7 @@ function readCurrentItem(isManualRetry = false, keepCurrentSentence = false) {
     }
 
     const mainUtterance = new SpeechSynthesisUtterance(mainUtteranceText);
-    mainUtterance.voice = settings.voice;
+    mainUtterance.voice = voiceForText(mainUtteranceText);
     mainUtterance.rate = settings.readingSpeed;
 
     mainUtterance.onend = () => {
@@ -914,7 +918,7 @@ function readCurrentItem(isManualRetry = false, keepCurrentSentence = false) {
                 }
 
                 const secondUtterance = new SpeechSynthesisUtterance(secondText);
-                secondUtterance.voice = settings.voice;
+                secondUtterance.voice = voiceForText(secondText);
                 secondUtterance.rate = settings.readingSpeed;
                 secondUtterance.onend = startAutoNextCountdown;
                 synth.speak(secondUtterance);
@@ -934,13 +938,14 @@ function readCurrentItem(isManualRetry = false, keepCurrentSentence = false) {
 
     if (shouldAnnounce) {
         const itemNumber = currentIndex + 1;
+        const announcementVoice = voiceForText(mainUtteranceText);
         let announcementText = `Number ${itemNumber}`;
-        if (settings.voice && settings.voice.lang.startsWith('zh')) {
+        if (announcementVoice && announcementVoice.lang.startsWith('zh')) {
             announcementText = `第 ${itemNumber} 题`;
         }
 
         const announcementUtterance = new SpeechSynthesisUtterance(announcementText);
-        announcementUtterance.voice = settings.voice;
+        announcementUtterance.voice = announcementVoice;
         announcementUtterance.rate = settings.readingSpeed;
 
         contextDisplay.innerHTML = currentItemContext;
